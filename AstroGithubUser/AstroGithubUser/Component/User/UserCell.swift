@@ -11,6 +11,8 @@ import UIKit
 internal class UserCell: UITableViewCell {
     internal static let identifier = "UserCell"
     
+    internal weak var delegate: UserCellDelegate?
+    
     private let profileImageView: UIImageView = {
         let profileImageView = UIImageView()
         profileImageView.layer.cornerRadius = 8
@@ -42,7 +44,6 @@ internal class UserCell: UITableViewCell {
     
     internal override init(style: UITableViewCell.CellStyle, reuseIdentifier: String?) {
         super.init(style: style, reuseIdentifier: reuseIdentifier)
-        
         setupStackView()
         setupFavoriteButton()
         setupUI()
@@ -62,6 +63,7 @@ internal class UserCell: UITableViewCell {
         profileImageView.image = nil
         nameLabel.text = nil
         favoriteButton.isSelected = false
+        delegate = nil
     }
     
     private func setupUI() {
@@ -98,6 +100,9 @@ internal class UserCell: UITableViewCell {
     }
     
     @objc private func favoriteButtonTapped() {
+        if let viewModel = viewModel {
+            delegate?.didTapLikeButton(for: viewModel.user)
+        }
     }
     
     private func bindViewModel() {
@@ -127,4 +132,3 @@ internal class UserCell: UITableViewCell {
             }.store(in: &cancellables)
     }
 }
-

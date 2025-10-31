@@ -7,6 +7,10 @@
 
 import Foundation
 
+internal protocol UserCellDelegate: AnyObject {
+    func didTapLikeButton(for user: User)
+}
+
 internal final class UserViewModel {
     @Published private(set) var profileImageData: Data?
     @Published private(set) var name: String = ""
