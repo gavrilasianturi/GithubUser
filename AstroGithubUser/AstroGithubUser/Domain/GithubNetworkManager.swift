@@ -9,7 +9,7 @@ import Combine
 import Foundation
 
 internal protocol GithubNetworkManager {
-    func getSearchResult(query: String) -> AnyPublisher<UserResponse, NetworkError>
+    func getSearchResult(query: String, page: Int) -> AnyPublisher<UserResponse, NetworkError>
 }
 
 internal final class LiveGithubNetworkManager: GithubNetworkManager {
@@ -18,11 +18,16 @@ internal final class LiveGithubNetworkManager: GithubNetworkManager {
     
     internal init() {}
     
-    internal func getSearchResult(query: String) -> AnyPublisher<UserResponse, NetworkError> {
-        guard let url = URL(string: "https://api.github.com/search/users?q=\(query)") else {
+    internal func getSearchResult(query: String, page: Int) -> AnyPublisher<UserResponse, NetworkError> {
+        guard let url = URL(string: "https://api.github.com/search/users?q=\(query)&page=\(page)") else {
             return Fail(error: NetworkError.invalidURL).eraseToAnyPublisher()
         }
         
-        return networkService.fetch(URLRequest(url: url))
+        var request = URLRequest(url: url)
+        request.setValue("Bearer ", forHTTPHeaderField: "Authorization")
+        
+        print("Request URL: \(request)")
+        
+        return networkService.fetch(request)
     }
 }

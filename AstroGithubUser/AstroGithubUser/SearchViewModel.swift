@@ -20,6 +20,12 @@ internal class SearchViewModel {
     @Published var favoriteUsers = Set<FavoriteUserData>()
     @Published private(set) var users: [User] = []
     @Published private(set) var errorMessage: String = ""
+    @Published private(set) var isLoading: Bool = false
+    
+    internal let loadMoreSubject = PassthroughSubject<Void, Never>()
+    
+    private var pageNumber: Int = 1
+    private var previousQuery: String = ""
     
     private var cancellables: Set<AnyCancellable> = []
     
@@ -41,68 +47,6 @@ internal class SearchViewModel {
         setupSortedItems()
     }
     
-    private func setupSearch() {
-        $query
-            .debounce(for: .milliseconds(debounce), scheduler: RunLoop.main)
-            .flatMap({ [weak self] query -> AnyPublisher<[User], NetworkError> in
-                guard let self else { return Fail(error: NetworkError.others("")).eraseToAnyPublisher() }
-                
-                let finalQuery = query.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
-                
-                guard !finalQuery.isEmpty else {
-                    return Just([])
-                        .setFailureType(to: NetworkError.self)
-                        .eraseToAnyPublisher()
-                }
-                
-                return self.networkManager
-                    .getSearchResult(query: query)
-                    .map { [weak self] response -> [User] in
-                        guard let self else { return [] }
-                        return sort(sortType, from: response.items)
-                    }
-                    .eraseToAnyPublisher()
-            })
-            .receive(on: DispatchQueue.main)
-            .sink(
-                receiveCompletion: { [weak self] completion in
-                    guard let self else { return }
-                    switch completion {
-                    case .finished:
-                        self.errorMessage = ""
-                    case .failure(let error):
-                        self.errorMessage = error.localizedDescription
-                        self.users = []
-                    }
-                },
-                receiveValue: { [weak self] userResponse in
-                    guard let self else { return }
-                    
-                    users = userResponse.compactMap { [weak self] user -> User? in
-                        guard let self else { return user }
-                        var mutatedUser = user
-                        mutatedUser.isLiked = favoriteUsers.contains(where: { $0.id == user.id && $0.username == user.login })
-                        return mutatedUser
-                    }
-                    
-                    errorMessage = ""
-                }
-            )
-            .store(in: &cancellables)
-    }
-    
-    private func setupSortedItems() {
-        $sortType
-            .receive(on: DispatchQueue.main)
-            .sink(
-                receiveCompletion: { _ in },
-                receiveValue: { [weak self] sortType in
-                    guard let self else { return }
-                    users = sort(sortType, from: users)
-                }
-            ).store(in: &cancellables)
-    }
-    
     internal func setFavorite(for user: User) {
         guard let index = users.firstIndex(where: { $0.id == user.id }) else { return }
         
@@ -120,6 +64,121 @@ internal class SearchViewModel {
                     loadFavoriteStates()
                 }
             ).store(in: &cancellables)
+    }
+    
+    private func setupSearch() {
+        let queryRequest = $query
+            .debounce(for: .milliseconds(debounce), scheduler: RunLoop.main)
+            .map { [weak self] query -> (String, Int) in
+                guard let self else { return ("", 1) }
+                pageNumber = 1
+                isLoading = true
+                return (query, pageNumber)
+            }
+        
+        let loadMoreRequest = loadMoreSubject
+            .debounce(for: .milliseconds(debounce), scheduler: RunLoop.main)
+            .map { [weak self] _ -> (String, Int) in
+                guard let self else { return ("", 1) }
+                pageNumber += 1
+                isLoading = true
+                return (query, pageNumber)
+            }
+        
+        Publishers.Merge(
+            queryRequest,
+            loadMoreRequest
+        )
+        .removeDuplicates(by: { old, new in
+            old.0 == new.0 && old.1 == new.1
+        })
+        .filter { [weak self] _, _ in
+            guard let self else { return false }
+            return isLoading
+        }
+        .map { [weak self] query, page -> AnyPublisher<[User], NetworkError> in
+            guard let self, !query.isEmpty else {
+                return Just([])
+                    .setFailureType(to: NetworkError.self)
+                    .eraseToAnyPublisher()
+            }
+            
+            return networkManager
+                .getSearchResult(query: query, page: page)
+                .map { response in response.items }
+                .handleEvents(
+                    receiveCompletion: { [weak self] _ in
+                        self?.isLoading = false
+                    },
+                    receiveCancel: { [weak self] in
+                        self?.isLoading = false
+                    }
+                )
+                .eraseToAnyPublisher()
+        }
+        .switchToLatest()
+        .receive(on: DispatchQueue.main)
+        .sink(
+            receiveCompletion: { [weak self] completion in
+                guard let self else { return }
+                
+                switch completion {
+                case .finished:
+                    self.errorMessage = ""
+                case .failure(let error):
+                    if users.isEmpty {
+                        self.errorMessage = error.localizedDescription
+                        self.users = []
+                    }
+                }
+            },
+            receiveValue: { [weak self] newUsers in
+                guard let self else { return }
+                
+                if pageNumber > 1 {
+                    let combinedUsers = users + newUsers
+                    let finalUsers = generateFavoriteUsers(for: combinedUsers)
+                    
+                    users = sort(sortType, from: finalUsers)
+                } else {
+                    let finalUsers = generateFavoriteUsers(for: newUsers)
+                    users = sort(sortType, from: finalUsers)
+                }
+                
+                errorMessage = ""
+            }
+        )
+        .store(in: &cancellables)
+    }
+    
+    private func setupSortedItems() {
+        $sortType
+            .receive(on: DispatchQueue.main)
+            .sink(
+                receiveCompletion: { _ in },
+                receiveValue: { [weak self] sortType in
+                    guard let self else { return }
+                    users = sort(sortType, from: users)
+                }
+            ).store(in: &cancellables)
+    }
+    
+    private func generateFavoriteUsers(for users: [User]) -> [User] {
+        users.compactMap { [weak self] user -> User? in
+            guard let self else { return user }
+            var mutatedUser = user
+            mutatedUser.isLiked = favoriteUsers.contains(where: { $0.id == user.id && $0.username == user.login })
+            return mutatedUser
+        }
+    }
+    
+    private func reset() {
+        users = []
+        pageNumber = 1
+    }
+    
+    private func trimQuery(_ q: String) -> String {
+        q.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
     }
     
     private func loadFavoriteStates() {

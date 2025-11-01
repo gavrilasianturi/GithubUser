@@ -18,6 +18,8 @@ internal final class UserViewModel {
     
     internal let user: User
     
+    private var imageLoadingTask: Task<Void, Never>?
+    
     internal init(user: User) {
         self.user = user
         setupUI(user: user)
@@ -27,7 +29,10 @@ internal final class UserViewModel {
         name = user.login
         isLiked = user.isLiked
         
+        cancelImageLoading()
+        
         Task {
+            guard !Task.isCancelled else { return }
             profileImageData = await loadImage(url: user.avatarURL)
         }
     }
@@ -40,5 +45,10 @@ internal final class UserViewModel {
         } catch {
             return nil
         }
+    }
+    
+    internal func cancelImageLoading() {
+        imageLoadingTask?.cancel()
+        imageLoadingTask = nil
     }
 }

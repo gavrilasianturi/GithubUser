@@ -14,15 +14,15 @@ internal class NetworkService {
     internal func fetch<T: Decodable>(_ request: URLRequest) -> AnyPublisher<T, NetworkError> {
         URLSession.shared.dataTaskPublisher(for: request)
             .tryMap { data, response in
+                print("status code", (response as? HTTPURLResponse)?.statusCode)
                 guard
-                    let httpResponse = response as? HTTPURLResponse,
-                    httpResponse.statusCode == 200
+                    let httpRespones = response as? HTTPURLResponse
                 else { throw NetworkError.networkError }
                 return data
             }
             .decode(type: T.self, decoder: JSONDecoder())
             .mapError { error in
-                (error as? NetworkError) ?? NetworkError.others(error.localizedDescription)
+                NetworkError.others(error.localizedDescription)
             }
             .eraseToAnyPublisher()
     }

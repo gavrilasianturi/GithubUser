@@ -176,6 +176,7 @@ internal class SearchViewController: UIViewController {
         }
         
         tableView.dataSource = dataSource
+        tableView.delegate = self
         tableView.register(UserCell.self, forCellReuseIdentifier: UserCell.identifier)
     }
     
@@ -231,6 +232,18 @@ internal class SearchViewController: UIViewController {
                 }
             }
             .store(in: &cancellables)
+    }
+}
+
+extension SearchViewController: UITableViewDelegate {
+    internal func scrollViewDidScroll(_ scrollView: UIScrollView) {
+        let offsetY = scrollView.contentOffset.y
+        let contentHeight = scrollView.contentSize.height
+        let frameHeight = scrollView.frame.size.height
+        
+        if offsetY > contentHeight - frameHeight - 100 {
+            viewModel.loadMoreSubject.send(())
+        }
     }
 }
 

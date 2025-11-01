@@ -53,6 +53,12 @@ internal class UserCell: UITableViewCell {
         fatalError("init(coder:) has not been implemented")
     }
     
+    internal override func prepareForReuse() {
+        super.prepareForReuse()
+        
+        reset()
+    }
+    
     internal func configure(user: User) {
         reset()
         viewModel = UserViewModel(user: user)
@@ -64,6 +70,8 @@ internal class UserCell: UITableViewCell {
         nameLabel.text = nil
         favoriteButton.isSelected = false
         delegate = nil
+        cancellables = []
+        viewModel?.cancelImageLoading()
     }
     
     private func setupUI() {
