@@ -38,7 +38,9 @@
 # c.f. http://www.westwind.com/reference/os-x/invisibles.html
 
 .Trashes
-
+# Environment variables (contains sensitive tokens)
+.env
+.env.local
 # c.f. http://www.westwind.com/reference/os-x/invisibles.html
 
 *.swp
