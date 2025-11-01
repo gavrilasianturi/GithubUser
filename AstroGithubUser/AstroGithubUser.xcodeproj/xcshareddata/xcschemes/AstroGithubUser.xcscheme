@@ -74,13 +74,6 @@
             ReferencedContainer = "container:AstroGithubUser.xcodeproj">
          </BuildableReference>
       </BuildableProductRunnable>
-      <EnvironmentVariables>
-         <EnvironmentVariable
-            key = "GITHUB_TOKEN"
-            value = "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"
-            isEnabled = "YES">
-         </EnvironmentVariable>
-      </EnvironmentVariables>
    </LaunchAction>
    <ProfileAction
       buildConfiguration = "Release"

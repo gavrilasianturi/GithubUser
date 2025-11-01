@@ -97,9 +97,10 @@ internal class SearchViewController: UIViewController {
         
         [ascendingButton, descendingButton].forEach { button in
             button.setImage(UIImage(systemName: "circle"), for: .normal)
-            button.setImage(UIImage(systemName: "circle.fill"), for: .selected)
+            button.setImage(UIImage(systemName: "circle.fill")?.withTintColor(.systemBlue), for: .selected)
             button.setTitleColor(.label, for: .normal)
             button.backgroundColor = .clear
+            button.translatesAutoresizingMaskIntoConstraints = false
             
             button.addTarget(self, action: #selector(sortButtonTapped(_:)), for: .touchUpInside)
         }
