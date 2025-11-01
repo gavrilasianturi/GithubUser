@@ -8,6 +8,7 @@
 import Combine
 import UIKit
 
+// TODO: FIX RADIO BUTTON UI
 internal class SearchViewController: UIViewController {
     internal enum Section {
         case main

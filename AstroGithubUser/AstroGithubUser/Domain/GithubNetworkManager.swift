@@ -24,7 +24,9 @@ internal final class LiveGithubNetworkManager: GithubNetworkManager {
         }
         
         var request = URLRequest(url: url)
-        request.setValue("Bearer ", forHTTPHeaderField: "Authorization")
+                
+        let token = ProcessInfo.processInfo.environment["GITHUB_TOKEN"] ?? ""
+        request.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
         
         print("Request URL: \(request)")
         

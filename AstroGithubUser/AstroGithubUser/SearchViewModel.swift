@@ -8,6 +8,9 @@
 import Combine
 import Foundation
 
+// TODO: STORE THE SHARED PREFERENCE IN CORE DATA
+// TODO: UPDATE LAYOUTTYPE (LOADING, EMPTY RESULT, ERROR FROM API)
+// TODO: MODULARRR
 internal class SearchViewModel {
     internal enum SortType: String {
         case ascending
