@@ -14,17 +14,23 @@ internal struct FavoriteUserData: Codable, Hashable {
     internal let username: String
 }
 
-internal protocol FavoriteUserStorage {
+internal struct UserPreferenceData: Codable, Hashable {
+    internal let sortType: String
+}
+
+internal protocol GlobalStorage {
     func saveFavorite(id: Int, username: String) -> AnyPublisher<Void, NetworkError>
     func removeFavorite(id: Int, username: String) -> AnyPublisher<Void, NetworkError>
     func getAllFavorites() -> AnyPublisher<[FavoriteUserData], NetworkError>
+    func saveUserPreference(_ preference: UserPreferenceData) -> AnyPublisher<Void, NetworkError>
+    func getUserPreference() -> AnyPublisher<UserPreferenceData?, NetworkError>
 }
 
-internal class CoreDataFavoriteUserStorage: FavoriteUserStorage {
+internal class CoreDataGlobalStorage: GlobalStorage {
     private let container: NSPersistentContainer
     
     internal init() {
-        self.container = NSPersistentContainer(name: "FavoriteUsers")
+        self.container = NSPersistentContainer(name: "GlobalStorage")
         
         container.loadPersistentStores { _, error in
             if let error = error {
@@ -90,6 +96,54 @@ internal class CoreDataFavoriteUserStorage: FavoriteUserStorage {
             let favoriteUsers = favorites.map { FavoriteUserData(id: Int($0.id), username: $0.username ?? "") }
             
             return Just(favoriteUsers)
+                .setFailureType(to: NetworkError.self)
+                .eraseToAnyPublisher()
+        } catch {
+            return Fail(error: NetworkError.others(error.localizedDescription))
+                .eraseToAnyPublisher()
+        }
+    }
+    
+    internal func saveUserPreference(_ preference: UserPreferenceData) -> AnyPublisher<Void, NetworkError> {
+        let context = self.container.viewContext
+        
+        let request: NSFetchRequest<Preference> = Preference.fetchRequest()
+        
+        do {
+            let currentPreference = try context.fetch(request)
+            currentPreference.forEach { preference in
+                context.delete(preference)
+            }
+            
+            let newPreference = Preference(context: context)
+            newPreference.sortType = preference.sortType
+            
+            try context.save()
+            return Just(())
+                .setFailureType(to: NetworkError.self)
+                .eraseToAnyPublisher()
+        } catch {
+            return Fail(error: NetworkError.others(error.localizedDescription))
+                .eraseToAnyPublisher()
+        }
+    }
+    
+    internal func getUserPreference() -> AnyPublisher<UserPreferenceData?, NetworkError> {
+        let context = self.container.viewContext
+        
+        let request: NSFetchRequest<Preference> = Preference.fetchRequest()
+        
+        do {
+            let currentPreference = try context.fetch(request)
+            
+            let preference: UserPreferenceData?
+            if let storagePreference = currentPreference.first {
+                preference = UserPreferenceData(sortType: storagePreference.sortType ?? "")
+            } else {
+                preference = nil
+            }
+            
+            return Just(preference)
                 .setFailureType(to: NetworkError.self)
                 .eraseToAnyPublisher()
         } catch {

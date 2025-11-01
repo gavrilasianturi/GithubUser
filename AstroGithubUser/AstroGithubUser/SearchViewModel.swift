@@ -33,17 +33,17 @@ internal class SearchViewModel {
     private var cancellables: Set<AnyCancellable> = []
     
     private let networkManager: GithubNetworkManager
-    private let favoriteStorage: FavoriteUserStorage
+    private let globalStorage: GlobalStorage
     private let debounce: Int
     
     internal init(
         networkManager: GithubNetworkManager = LiveGithubNetworkManager(),
         debounce: Int = 300,
-        favoriteUserStorage: FavoriteUserStorage = CoreDataFavoriteUserStorage()
+        favoriteUserStorage: GlobalStorage = CoreDataGlobalStorage()
     ) {
         self.networkManager = networkManager
         self.debounce = debounce
-        self.favoriteStorage = favoriteUserStorage
+        self.globalStorage = favoriteUserStorage
         
         loadFavoriteStates()
         setupSearch()
@@ -55,7 +55,7 @@ internal class SearchViewModel {
         
         let item = users[index]
         
-        let storageAction = item.isLiked ? favoriteStorage.removeFavorite(id: item.id, username: item.login) : favoriteStorage.saveFavorite(id: item.id, username: item.login)
+        let storageAction = item.isLiked ? globalStorage.removeFavorite(id: item.id, username: item.login) : globalStorage.saveFavorite(id: item.id, username: item.login)
         
         storageAction
             .receive(on: DispatchQueue.main)
@@ -185,7 +185,7 @@ internal class SearchViewModel {
     }
     
     private func loadFavoriteStates() {
-        favoriteStorage.getAllFavorites()
+        globalStorage.getAllFavorites()
             .receive(on: DispatchQueue.main)
             .sink(
                 receiveCompletion: { _ in },
