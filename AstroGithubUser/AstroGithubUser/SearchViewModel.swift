@@ -8,7 +8,6 @@
 import Combine
 import Foundation
 
-// TODO: STORE THE SHARED PREFERENCE IN CORE DATA
 // TODO: UPDATE LAYOUTTYPE (LOADING, EMPTY RESULT, ERROR FROM API)
 // TODO: MODULARRR
 internal class SearchViewModel {
@@ -20,12 +19,15 @@ internal class SearchViewModel {
     
     @Published var sortType: SortType = .none
     @Published var query: String = ""
-    @Published var favoriteUsers = Set<FavoriteUserData>()
     @Published private(set) var users: [User] = []
     @Published private(set) var errorMessage: String = ""
     @Published private(set) var isLoading: Bool = false
+    @Published private(set) var userPreference: UserPreferenceData?
     
     internal let loadMoreSubject = PassthroughSubject<Void, Never>()
+    internal let updateSortSubject = PassthroughSubject<SortType, Never>()
+    
+    private(set) var favoriteUsers = Set<FavoriteUserData>()
     
     private var pageNumber: Int = 1
     private var previousQuery: String = ""
@@ -39,13 +41,14 @@ internal class SearchViewModel {
     internal init(
         networkManager: GithubNetworkManager = LiveGithubNetworkManager(),
         debounce: Int = 300,
-        favoriteUserStorage: GlobalStorage = CoreDataGlobalStorage()
+        globalStorage: GlobalStorage = CoreDataGlobalStorage()
     ) {
         self.networkManager = networkManager
         self.debounce = debounce
-        self.globalStorage = favoriteUserStorage
+        self.globalStorage = globalStorage
         
         loadFavoriteStates()
+        loadUserPreferenceState()
         setupSearch()
         setupSortedItems()
     }
@@ -155,15 +158,41 @@ internal class SearchViewModel {
     }
     
     private func setupSortedItems() {
-        $sortType
+        updateSortSubject
             .receive(on: DispatchQueue.main)
             .sink(
                 receiveCompletion: { _ in },
-                receiveValue: { [weak self] sortType in
+                receiveValue: { [weak self] latestSortType in
                     guard let self else { return }
-                    users = sort(sortType, from: users)
+                    
+                    let preference: UserPreferenceData
+                    
+                    if var currentPreference = userPreference {
+                        currentPreference.sortType = latestSortType.rawValue
+                        preference = currentPreference
+                    } else {
+                        preference = UserPreferenceData(sortType: latestSortType.rawValue)
+                    }
+                    
+                    globalStorage
+                        .saveUserPreference(preference)
+                        .receive(on: DispatchQueue.main)
+                        .sink(
+                            receiveCompletion: { _ in },
+                            receiveValue: { [weak self] _ in
+                                guard let self else { return }
+                                loadUserPreferenceState()
+                            }
+                        ).store(in: &cancellables)
                 }
             ).store(in: &cancellables)
+        
+        $sortType
+            .receive(on: DispatchQueue.main)
+            .sink(receiveValue: { [weak self] type in
+                guard let self else { return }
+                users = sort(type, from: users)
+            }).store(in: &cancellables)
     }
     
     private func generateFavoriteUsers(for users: [User]) -> [User] {
@@ -195,6 +224,27 @@ internal class SearchViewModel {
                 }
             )
             .store(in: &cancellables)
+    }
+    
+    private func loadUserPreferenceState() {
+        globalStorage.getUserPreference()
+            .receive(on: DispatchQueue.main)
+            .sink(
+                receiveCompletion: { _ in },
+                receiveValue: { [weak self] preference in
+                    guard let self else { return }
+                    userPreference = preference
+                }
+            )
+            .store(in: &cancellables)
+        
+        $userPreference
+            .sink(receiveValue: { [weak self] preference in
+                guard let self else { return }
+                if let sortOption = preference?.sortType {
+                    sortType = SortType(rawValue: sortOption) ?? .none
+                }
+            }).store(in: &cancellables)
     }
     
     private func sort(_ type: SortType, from items: [User]) -> [User] {

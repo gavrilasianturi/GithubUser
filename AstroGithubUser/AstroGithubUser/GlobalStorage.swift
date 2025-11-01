@@ -15,7 +15,7 @@ internal struct FavoriteUserData: Codable, Hashable {
 }
 
 internal struct UserPreferenceData: Codable, Hashable {
-    internal let sortType: String
+    internal var sortType: String
 }
 
 internal protocol GlobalStorage {

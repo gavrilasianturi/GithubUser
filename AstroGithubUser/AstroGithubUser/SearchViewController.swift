@@ -103,23 +103,15 @@ internal class SearchViewController: UIViewController {
             
             button.addTarget(self, action: #selector(sortButtonTapped(_:)), for: .touchUpInside)
         }
+        
+        bindSortButton(viewModel.sortType)
     }
     
     @objc private func sortButtonTapped(_ sender: UIButton) {
         if sender == ascendingButton {
-            ascendingButton.isSelected = true
-            descendingButton.isSelected = false
+            viewModel.updateSortSubject.send(.ascending)
         } else {
-            ascendingButton.isSelected = false
-            descendingButton.isSelected = true
-        }
-        
-        if ascendingButton.isSelected {
-            viewModel.sortType = .ascending
-        } else if descendingButton.isSelected {
-            viewModel.sortType = .descending
-        } else {
-            viewModel.sortType = .none
+            viewModel.updateSortSubject.send(.descending)
         }
     }
     
@@ -214,6 +206,22 @@ internal class SearchViewController: UIViewController {
         dataSource.apply(snapshot, animatingDifferences: false)
     }
     
+    private func bindSortButton(_ type: SearchViewModel.SortType) {
+        switch type {
+        case .ascending:
+            ascendingButton.isSelected = true
+            descendingButton.isSelected = false
+            
+        case .descending:
+            descendingButton.isSelected = true
+            ascendingButton.isSelected = false
+            
+        case .none:
+            ascendingButton.isSelected = false
+            descendingButton.isSelected = false
+        }
+    }
+    
     private func bindViewModel() {
         Publishers.CombineLatest(viewModel.$users, viewModel.$errorMessage)
             .receive(on: DispatchQueue.main)
@@ -231,6 +239,14 @@ internal class SearchViewController: UIViewController {
                     showErrorView(with: "No results found")
                     sortStackView.isHidden = true
                 }
+            }
+            .store(in: &cancellables)
+        
+        viewModel.$sortType
+            .receive(on: DispatchQueue.main)
+            .sink { [weak self] sortType in
+                guard let self else { return }
+                bindSortButton(sortType)
             }
             .store(in: &cancellables)
     }
