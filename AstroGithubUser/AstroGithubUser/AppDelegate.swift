@@ -2,7 +2,7 @@
 //  AppDelegate.swift
 //  AstroGithubUser
 //
-//  Created by ByteDance on 31/10/25.
+//  Created by Gavrila on 31/10/25.
 //
 
 import UIKit

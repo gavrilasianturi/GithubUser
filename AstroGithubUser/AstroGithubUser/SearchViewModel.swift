@@ -15,26 +15,28 @@ internal class SearchViewModel {
         case none
     }
     
-    private static let sortPreferenceKey = "SortPreferenceKey"
-    
-    @Published internal var query = ""
-    @Published internal var sortType: SortType
+    @Published var sortType: SortType = .none
+    @Published var query: String = ""
+    @Published var favoriteUsers = Set<FavoriteUserData>()
     @Published private(set) var users: [User] = []
     @Published private(set) var errorMessage: String = ""
     
-    private let networkManager: GithubNetworkManager
-    private let debounce: Int
     private var cancellables: Set<AnyCancellable> = []
+    
+    private let networkManager: GithubNetworkManager
+    private let favoriteStorage: FavoriteUserStorage
+    private let debounce: Int
     
     internal init(
         networkManager: GithubNetworkManager = LiveGithubNetworkManager(),
-        sortType: SortType = .none,
-        debounce: Int = 300
+        debounce: Int = 300,
+        favoriteUserStorage: FavoriteUserStorage = CoreDataFavoriteUserStorage()
     ) {
         self.networkManager = networkManager
-        self.sortType = sortType
         self.debounce = debounce
+        self.favoriteStorage = favoriteUserStorage
         
+        loadFavoriteStates()
         setupSearch()
         setupSortedItems()
     }
@@ -73,10 +75,16 @@ internal class SearchViewModel {
                         self.users = []
                     }
                 },
-                receiveValue: { [weak self] items in
+                receiveValue: { [weak self] userResponse in
                     guard let self else { return }
                     
-                    users = items
+                    users = userResponse.compactMap { [weak self] user -> User? in
+                        guard let self else { return user }
+                        var mutatedUser = user
+                        mutatedUser.isLiked = favoriteUsers.contains(where: { $0.id == user.id && $0.username == user.login })
+                        return mutatedUser
+                    }
+                    
                     errorMessage = ""
                 }
             )
@@ -95,6 +103,38 @@ internal class SearchViewModel {
             ).store(in: &cancellables)
     }
     
+    internal func setFavorite(for user: User) {
+        guard let index = users.firstIndex(where: { $0.id == user.id }) else { return }
+        
+        let item = users[index]
+        
+        let storageAction = item.isLiked ? favoriteStorage.removeFavorite(id: item.id, username: item.login) : favoriteStorage.saveFavorite(id: item.id, username: item.login)
+        
+        storageAction
+            .receive(on: DispatchQueue.main)
+            .sink(
+                receiveCompletion: { _ in },
+                receiveValue: { [weak self] _ in
+                    guard let self, let index = users.firstIndex(where: { $0.id == user.id }) else { return }
+                    users[index].isLiked.toggle()
+                    loadFavoriteStates()
+                }
+            ).store(in: &cancellables)
+    }
+    
+    private func loadFavoriteStates() {
+        favoriteStorage.getAllFavorites()
+            .receive(on: DispatchQueue.main)
+            .sink(
+                receiveCompletion: { _ in },
+                receiveValue: { [weak self] favorites in
+                    guard let self else { return }
+                    favoriteUsers = Set(favorites)
+                }
+            )
+            .store(in: &cancellables)
+    }
+    
     private func sort(_ type: SortType, from items: [User]) -> [User] {
         switch sortType {
         case .ascending:
@@ -104,10 +144,5 @@ internal class SearchViewModel {
         case .none:
             return items
         }
-    }
-    
-    internal func setFavorite(for user: User) {
-        guard let index = users.firstIndex(where: { $0.id == user.id }) else { return }
-        users[index].isLiked.toggle()
     }
 }
