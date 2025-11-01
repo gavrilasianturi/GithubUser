@@ -8,7 +8,6 @@
 import Combine
 import UIKit
 
-// TODO: FIX RADIO BUTTON UI
 internal class SearchViewController: UIViewController {
     internal enum Section {
         case main
@@ -96,10 +95,12 @@ internal class SearchViewController: UIViewController {
         descendingButton.setTitle("DESC", for: .normal)
         
         [ascendingButton, descendingButton].forEach { button in
-            button.setImage(UIImage(systemName: "circle"), for: .normal)
-            button.setImage(UIImage(systemName: "circle.fill")?.withTintColor(.systemBlue), for: .selected)
+            button.setImage(UIImage(systemName: "circle")?.withTintColor(.label, renderingMode: .alwaysOriginal), for: .normal)
+            button.setImage(UIImage(systemName: "circle.fill")?.withTintColor(.label, renderingMode: .alwaysOriginal), for: .selected)
             button.setTitleColor(.label, for: .normal)
+            button.setTitleColor(.label, for: .selected)
             button.backgroundColor = .clear
+            button.tintColor = .clear
             button.translatesAutoresizingMaskIntoConstraints = false
             
             button.addTarget(self, action: #selector(sortButtonTapped(_:)), for: .touchUpInside)

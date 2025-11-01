@@ -30,8 +30,6 @@ internal class UserCell: UITableViewCell {
     
     private let favoriteButton: UIButton = {
         let favoriteButton = UIButton()
-        favoriteButton.setImage(UIImage(systemName: "heart"), for: .normal)
-        favoriteButton.setImage(UIImage(systemName: "heart.fill"), for: .selected)
         favoriteButton.translatesAutoresizingMaskIntoConstraints = false
         
         return favoriteButton
@@ -104,6 +102,8 @@ internal class UserCell: UITableViewCell {
     }
     
     private func setupFavoriteButton() {
+        favoriteButton.setImage(UIImage(systemName: "heart")?.withTintColor(.systemRed, renderingMode: .alwaysOriginal), for: .normal)
+        favoriteButton.setImage(UIImage(systemName: "heart.fill")?.withTintColor(.systemRed, renderingMode: .alwaysOriginal), for: .selected)
         favoriteButton.addTarget(self, action: #selector(favoriteButtonTapped), for: .touchUpInside)
     }
     
@@ -134,9 +134,6 @@ internal class UserCell: UITableViewCell {
                 guard let self else { return }
                 
                 favoriteButton.isSelected = isLiked
-                    
-                let imageName = isLiked ? "heart.fill" : "heart"
-                favoriteButton.setImage(UIImage(systemName: imageName), for: .normal)
             }.store(in: &cancellables)
     }
 }
