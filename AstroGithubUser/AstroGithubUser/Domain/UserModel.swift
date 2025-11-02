@@ -6,7 +6,25 @@
 //
 
 internal struct UserResponse: Decodable, Equatable {
+    internal let totalCount: Int
     internal let items: [User]
+    
+    internal enum CodingKeys: String, CodingKey {
+        case totalCount = "total_count"
+        case items
+    }
+    
+    internal init(totalCount: Int = 0, items: [User] = []) {
+        self.totalCount = totalCount
+        self.items = items
+    }
+    
+    internal init(from decoder: any Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        
+        self.totalCount = try container.decodeIfPresent(Int.self, forKey: .totalCount) ?? 0
+        self.items = try container.decodeIfPresent([User].self, forKey: .items) ?? []
+    }
 }
 
 internal struct User: Decodable, Equatable, Identifiable, Hashable, Sendable {

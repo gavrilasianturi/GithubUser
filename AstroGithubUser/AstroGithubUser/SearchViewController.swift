@@ -9,9 +9,6 @@ import Combine
 import UIKit
 
 internal class SearchViewController: UIViewController {
-    internal enum Section {
-        case main
-    }
     
     // MARK: - UI Components
     private let searchBar = UISearchBar()
@@ -36,7 +33,7 @@ internal class SearchViewController: UIViewController {
     // MARK: - Properties
     private let viewModel = SearchViewModel()
     private var cancellables: Set<AnyCancellable> = []
-    private var dataSource: UITableViewDiffableDataSource<Section, User>?
+    private var dataSource: UITableViewDiffableDataSource<Section, ItemType>?
     
     public override func viewDidLoad() {
         super.viewDidLoad()
@@ -129,10 +126,10 @@ internal class SearchViewController: UIViewController {
         addContentToContainer(tableView)
     }
     
-    private func showErrorView(with message: String) {
+    private func showTextView(with message: String) {
         removeCurrentContent()
         
-        let errorView = createErrorView(with: message)
+        let errorView = createTextView(with: message)
         self.errorView = errorView
         
         addContentToContainer(errorView)
@@ -161,49 +158,57 @@ internal class SearchViewController: UIViewController {
         tableView = UITableView()
         guard let tableView = tableView else { return }
         
-        dataSource = UITableViewDiffableDataSource<Section, User>(tableView: tableView) { [weak self] tableView, indexPath, user in
+        dataSource = UITableViewDiffableDataSource<Section, ItemType>(tableView: tableView) { [weak self] tableView, indexPath, item in
             guard let self = self else { return UITableViewCell() }
             
-            let cell = tableView.dequeueReusableCell(withIdentifier: UserCell.identifier, for: indexPath) as? UserCell ?? UserCell()
-            cell.configure(user: user)
-            cell.delegate = self
-            return cell
+            switch item {
+            case .user(let user):
+                let cell = tableView.dequeueReusableCell(withIdentifier: UserCell.identifier, for: indexPath) as? UserCell ?? UserCell()
+                cell.configure(user: user)
+                cell.delegate = self
+                return cell
+                            
+            case .activityIndicator:
+                let cell = tableView.dequeueReusableCell(withIdentifier: LoadingCellView.identifier, for: indexPath) as? LoadingCellView ?? LoadingCellView()
+                return cell
+            }
         }
         
         tableView.dataSource = dataSource
         tableView.delegate = self
         tableView.register(UserCell.self, forCellReuseIdentifier: UserCell.identifier)
+        tableView.register(LoadingCellView.self, forCellReuseIdentifier: LoadingCellView.identifier)
     }
     
-    private func createErrorView(with message: String) -> UIView {
+    private func createTextView(with message: String) -> UIView {
         let containerView = UIView()
         
-        let errorLabel = UILabel()
-        errorLabel.text = message
-        errorLabel.textAlignment = .center
-        errorLabel.font = UIFont.preferredFont(forTextStyle: .body)
-        errorLabel.textColor = .systemRed
-        errorLabel.numberOfLines = 0
-        errorLabel.translatesAutoresizingMaskIntoConstraints = false
+        let infoLabel = UILabel()
+        infoLabel.text = message
+        infoLabel.textAlignment = .center
+        infoLabel.font = UIFont.preferredFont(forTextStyle: .body)
+        infoLabel.textColor = .systemRed
+        infoLabel.numberOfLines = 0
+        infoLabel.translatesAutoresizingMaskIntoConstraints = false
         
-        containerView.addSubview(errorLabel)
+        containerView.addSubview(infoLabel)
         
         NSLayoutConstraint.activate([
-            errorLabel.centerXAnchor.constraint(equalTo: containerView.centerXAnchor),
-            errorLabel.centerYAnchor.constraint(equalTo: containerView.centerYAnchor),
-            errorLabel.leadingAnchor.constraint(greaterThanOrEqualTo: containerView.leadingAnchor, constant: 20),
-            errorLabel.trailingAnchor.constraint(lessThanOrEqualTo: containerView.trailingAnchor, constant: -20)
+            infoLabel.centerXAnchor.constraint(equalTo: containerView.centerXAnchor),
+            infoLabel.centerYAnchor.constraint(equalTo: containerView.centerYAnchor),
+            infoLabel.leadingAnchor.constraint(greaterThanOrEqualTo: containerView.leadingAnchor, constant: 20),
+            infoLabel.trailingAnchor.constraint(lessThanOrEqualTo: containerView.trailingAnchor, constant: -20)
         ])
         
         return containerView
     }
     
-    private func updateSnapshot(with users: [User]) {
+    private func updateSnapshot(with items: [ItemType]) {
         guard let dataSource = dataSource else { return }
         
-        var snapshot = NSDiffableDataSourceSnapshot<Section, User>()
+        var snapshot = NSDiffableDataSourceSnapshot<Section, ItemType>()
         snapshot.appendSections([.main])
-        snapshot.appendItems(users)
+        snapshot.appendItems(items)
         
         dataSource.apply(snapshot, animatingDifferences: false)
     }
@@ -225,20 +230,19 @@ internal class SearchViewController: UIViewController {
     }
     
     private func bindViewModel() {
-        Publishers.CombineLatest(viewModel.$users, viewModel.$errorMessage)
+        viewModel.$layout
             .receive(on: DispatchQueue.main)
-            .sink { [weak self] users, errorMessage in
+            .sink { [weak self] type in
                 guard let self else { return }
                 
-                if !errorMessage.isEmpty {
-                    showErrorView(with: errorMessage)
-                    sortStackView.isHidden = true
-                } else if !users.isEmpty {
+                switch type {
+                case let .content(items):
                     showTableView()
-                    updateSnapshot(with: users)
+                    updateSnapshot(with: items)
                     sortStackView.isHidden = false
-                } else {
-                    showErrorView(with: "No results found")
+                    
+                case .empty, .error, .loading:
+                    showTextView(with: type.description)
                     sortStackView.isHidden = true
                 }
             }

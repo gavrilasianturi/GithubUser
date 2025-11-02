@@ -10,6 +10,23 @@ import Foundation
 
 // TODO: UPDATE LAYOUTTYPE (LOADING, EMPTY RESULT, ERROR FROM API)
 // TODO: MODULARRR
+
+internal enum Section {
+    case main
+}
+
+internal enum ItemType: Equatable, Hashable {
+    case user(User)
+    case activityIndicator
+    
+    internal var id: String {
+        switch self {
+        case let .user(user): return "user_\(user.id)"
+        case .activityIndicator: return "activityIndicator"
+        }
+    }
+}
+
 internal class SearchViewModel {
     internal enum SortType: String {
         case ascending
@@ -17,11 +34,31 @@ internal class SearchViewModel {
         case none
     }
     
+    internal enum LayoutType: Equatable {
+        case loading
+        case empty
+        case content([ItemType])
+        case error(String)
+        
+        internal var description: String {
+            switch self {
+            case .loading:
+                return "LOADINGGGGG"
+            case .empty:
+                return "NO RESULTTTT"
+            case let .error(message):
+                return message
+            case .content:
+                return ""
+            }
+        }
+    }
+    
     @Published var sortType: SortType = .none
     @Published var query: String = ""
-    @Published private(set) var users: [User] = []
+    @Published var layout: LayoutType = .empty
     @Published private(set) var errorMessage: String = ""
-    @Published private(set) var isLoading: Bool = false
+    @Published private(set) var isLoadMore: Bool = false
     @Published private(set) var userPreference: UserPreferenceData?
     
     internal let loadMoreSubject = PassthroughSubject<Void, Never>()
@@ -54,9 +91,17 @@ internal class SearchViewModel {
     }
     
     internal func setFavorite(for user: User) {
-        guard let index = users.firstIndex(where: { $0.id == user.id }) else { return }
+        guard
+            case var .content(items) = layout,
+            let index = items.firstIndex(where: { item in
+                guard case let .user(userItem) = item else { return false }
+                return userItem.id == user.id
+            })
+        else { return }
         
-        let item = users[index]
+        let itemType = items[index]
+        
+        guard case var .user(item) = itemType else { return }
         
         let storageAction = item.isLiked ? globalStorage.removeFavorite(id: item.id, username: item.login) : globalStorage.saveFavorite(id: item.id, username: item.login)
         
@@ -65,8 +110,10 @@ internal class SearchViewModel {
             .sink(
                 receiveCompletion: { _ in },
                 receiveValue: { [weak self] _ in
-                    guard let self, let index = users.firstIndex(where: { $0.id == user.id }) else { return }
-                    users[index].isLiked.toggle()
+                    guard let self else { return }
+                    item.isLiked.toggle()
+                    items[index] = .user(item)
+                    layout = .content(items)
                     loadFavoriteStates()
                 }
             ).store(in: &cancellables)
@@ -78,7 +125,8 @@ internal class SearchViewModel {
             .map { [weak self] query -> (String, Int) in
                 guard let self else { return ("", 1) }
                 pageNumber = 1
-                isLoading = true
+                isLoadMore = true
+                layout = .loading
                 return (query, pageNumber)
             }
         
@@ -87,7 +135,7 @@ internal class SearchViewModel {
             .map { [weak self] _ -> (String, Int) in
                 guard let self else { return ("", 1) }
                 pageNumber += 1
-                isLoading = true
+                isLoadMore = true
                 return (query, pageNumber)
             }
         
@@ -98,28 +146,15 @@ internal class SearchViewModel {
         .removeDuplicates(by: { old, new in
             old.0 == new.0 && old.1 == new.1
         })
-        .filter { [weak self] _, _ in
-            guard let self else { return false }
-            return isLoading
-        }
-        .map { [weak self] query, page -> AnyPublisher<[User], NetworkError> in
+        .map { [weak self] query, page -> AnyPublisher<UserResponse, NetworkError> in
             guard let self, !query.isEmpty else {
-                return Just([])
+                return Just(UserResponse())
                     .setFailureType(to: NetworkError.self)
                     .eraseToAnyPublisher()
             }
             
             return networkManager
                 .getSearchResult(query: query, page: page)
-                .map { response in response.items }
-                .handleEvents(
-                    receiveCompletion: { [weak self] _ in
-                        self?.isLoading = false
-                    },
-                    receiveCancel: { [weak self] in
-                        self?.isLoading = false
-                    }
-                )
                 .eraseToAnyPublisher()
         }
         .switchToLatest()
@@ -130,28 +165,44 @@ internal class SearchViewModel {
                 
                 switch completion {
                 case .finished:
-                    self.errorMessage = ""
+                    removeLoadingItem()
                 case .failure(let error):
-                    if users.isEmpty {
-                        self.errorMessage = error.localizedDescription
-                        self.users = []
+                    if layout == .empty {
+                        layout = .error(error)
                     }
+                    
+                    pageNumber = 1
                 }
             },
-            receiveValue: { [weak self] newUsers in
+            receiveValue: { [weak self] userResponse in
                 guard let self else { return }
                 
-                if pageNumber > 1 {
-                    let combinedUsers = users + newUsers
-                    let finalUsers = generateFavoriteUsers(for: combinedUsers)
-                    
-                    users = sort(sortType, from: finalUsers)
-                } else {
-                    let finalUsers = generateFavoriteUsers(for: newUsers)
-                    users = sort(sortType, from: finalUsers)
-                }
+                let users = userResponse.items
                 
-                errorMessage = ""
+                if users.isEmpty {
+                    layout = .empty
+                    pageNumber = 1
+                } else {
+                    let totalUsers: [ItemType]
+                    
+                    if pageNumber > 1 {
+                        let newUsers = generateUsersItem(from: users)
+                        totalUsers = (users + newUsers)
+                    } else {
+                        totalUsers = generateUsersItem(from: users)
+                    }
+                    
+                    let favoriteUsers = generateFavoriteUsers(for: totalUsers)
+                    let finalUsers = sort(sortType, from: favoriteUsers)
+                    
+                    var items = finalUsers
+                    
+                    if userResponse.totalCount > finalUsers.count {
+                        items.append(.activityIndicator)
+                    }
+                    
+                    layout = .content(items)
+                }
             }
         )
         .store(in: &cancellables)
@@ -190,22 +241,36 @@ internal class SearchViewModel {
         $sortType
             .receive(on: DispatchQueue.main)
             .sink(receiveValue: { [weak self] type in
-                guard let self else { return }
-                users = sort(type, from: users)
+                guard let self, case let .content(users) = layout else { return }
+                
+                let sortedUsers = sort(type, from: users)
+                layout = .content(sortedUsers)
             }).store(in: &cancellables)
     }
     
-    private func generateFavoriteUsers(for users: [User]) -> [User] {
-        users.compactMap { [weak self] user -> User? in
-            guard let self else { return user }
+    private func generateFavoriteUsers(for items: [ItemType]) -> [ItemType] {
+        items.compactMap { [weak self] item -> ItemType? in
+            guard let self, case let .user(user) = item else { return item }
             var mutatedUser = user
             mutatedUser.isLiked = favoriteUsers.contains(where: { $0.id == user.id && $0.username == user.login })
             return mutatedUser
         }
     }
     
+    private func generateUsersItem(from users: [User]) -> [ItemType] {
+        users.map { user -> ItemType in
+            .user(user)
+        }
+    }
+    
+    private func removeLoadingItem() {
+        guard case let .content(items) = layout else { return }
+        
+        items.removeAll(where: { $0 == .activityIndicator })
+    }
+    
     private func reset() {
-        users = []
+        layout = .empty
         pageNumber = 1
     }
     
@@ -247,12 +312,18 @@ internal class SearchViewModel {
             }).store(in: &cancellables)
     }
     
-    private func sort(_ type: SortType, from items: [User]) -> [User] {
+    private func sort(_ type: SortType, from items: [ItemType]) -> [ItemType] {
         switch sortType {
         case .ascending:
-            return items.sorted(by: { $0.login.lowercased() < $1.login.lowercased() })
+            return items.sorted { lItem, rItem in
+                guard case let .user(lUser) = lItem, case let .user(rUser) = rItem else { return false }
+                return lUser.login.lowercased() < rUser.login.lowercased()
+            }
         case .descending:
-            return items.sorted(by: { $0.login.lowercased() > $1.login.lowercased() })
+            return items.sorted { lItem, rItem in
+                guard case let .user(lUser) = lItem, case let .user(rUser) = rItem else { return false }
+                return lUser.login.lowercased() > rUser.login.lowercased()
+            }
         case .none:
             return items
         }
