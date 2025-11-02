@@ -5,8 +5,6 @@
 //  Created by Gavrila on 31/10/25.
 //
 
-// TODO: DO TEST
-
 import XCTest
 @testable import AstroGithubUser
 

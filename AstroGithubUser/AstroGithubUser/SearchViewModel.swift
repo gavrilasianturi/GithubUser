@@ -51,13 +51,21 @@ internal class SearchViewModel {
                 return ""
             }
         }
+        
+        internal var allowErrorState: Bool {
+            switch self {
+            case .loading, .empty, .error(_):
+                return true
+            case .content:
+                return false
+            }
+        }
     }
     
-    @Published var sortType: SortType = .none
-    @Published var query: String = ""
-    @Published var layout: LayoutType = .empty
-    @Published private(set) var errorMessage: String = ""
-    @Published private(set) var isLoadMore: Bool = false
+    @Published var sortType: SortType
+    @Published var query: String
+    @Published var layout: LayoutType
+    @Published private(set) var errorMessage: String
     @Published private(set) var userPreference: UserPreferenceData?
     
     internal let loadMoreSubject = PassthroughSubject<Void, Never>()
@@ -65,8 +73,8 @@ internal class SearchViewModel {
     
     private(set) var favoriteUsers = Set<FavoriteUserData>()
     
-    private var pageNumber: Int = 1
-    private var previousQuery: String = ""
+    internal var pageNumber: Int = 1
+    internal var hasNext: Bool = false
     
     private var cancellables: Set<AnyCancellable> = []
     
@@ -75,13 +83,27 @@ internal class SearchViewModel {
     private let debounce: Int
     
     internal init(
+        sortType: SortType = .none,
+        query: String = "",
+        layout: LayoutType = .empty,
+        errorMessage: String = "",
+        userPreference: UserPreferenceData? = nil,
+        pageNumber: Int = 1,
+        hasNext: Bool = false,
         networkManager: GithubNetworkManager = LiveGithubNetworkManager(),
         debounce: Int = 300,
         globalStorage: GlobalStorage = CoreDataGlobalStorage()
     ) {
+        self.sortType = sortType
+        self.query = query
+        self.layout = layout
+        self.errorMessage = errorMessage
+        self.userPreference = userPreference
         self.networkManager = networkManager
         self.debounce = debounce
         self.globalStorage = globalStorage
+        self.pageNumber = pageNumber
+        self.hasNext = hasNext
         
         loadFavoriteStates()
         loadUserPreferenceState()
@@ -120,21 +142,24 @@ internal class SearchViewModel {
     
     private func setupSearch() {
         let queryRequest = $query
+            .dropFirst()
             .debounce(for: .milliseconds(debounce), scheduler: RunLoop.main)
             .map { [weak self] query -> (String, Int) in
                 guard let self else { return ("", 1) }
-                pageNumber = 1
-                isLoadMore = true
+                reset()
                 layout = .loading
                 return (query, pageNumber)
             }
         
         let loadMoreRequest = loadMoreSubject
             .debounce(for: .milliseconds(debounce), scheduler: RunLoop.main)
+            .filter { [weak self] _ in
+                guard let self else { return false }
+                return hasNext
+            }
             .map { [weak self] _ -> (String, Int) in
                 guard let self else { return ("", 1) }
                 pageNumber += 1
-                isLoadMore = true
                 return (query, pageNumber)
             }
         
@@ -161,43 +186,44 @@ internal class SearchViewModel {
         .sink(
             receiveCompletion: { [weak self] completion in
                 guard let self else { return }
+                removeLoadingItem()
                 
                 switch completion {
                 case .finished:
-                    removeLoadingItem()
+                    break
                 case .failure(let error):
-                    if layout == .empty {
+                    if layout.allowErrorState {
                         layout = .error(error.localizedDescription)
+                        reset()
                     }
-                    
-                    pageNumber = 1
                 }
             },
             receiveValue: { [weak self] userResponse in
                 guard let self else { return }
                 
                 let users = userResponse.items
+                let totalUsers: [ItemType]
                 
-                if users.isEmpty {
-                    layout = .empty
-                    pageNumber = 1
+                if pageNumber > 1 {
+                    let currentUsers = generateCurrentUser()
+                    let newUsers = generateUsersItem(from: users)
+                    totalUsers = (currentUsers + newUsers)
                 } else {
-                    let totalUsers: [ItemType]
-                    
-                    if pageNumber > 1 {
-                        let currentUsers = generateCurrentUser()
-                        let newUsers = generateUsersItem(from: users)
-                        totalUsers = (currentUsers + newUsers)
-                    } else {
-                        totalUsers = generateUsersItem(from: users)
-                    }
-                    
+                    totalUsers = generateUsersItem(from: users)
+                }
+                
+                if totalUsers.isEmpty {
+                    layout = .empty
+                    reset()
+                } else {
                     let favoriteUsers = generateFavoriteUsers(for: totalUsers)
                     let finalUsers = sort(sortType, from: favoriteUsers)
                     
                     var items = finalUsers
                     
-                    if userResponse.totalCount > finalUsers.count {
+                    hasNext = userResponse.totalCount > finalUsers.count
+                    
+                    if hasNext {
                         items.append(.activityIndicator)
                     }
                     
@@ -280,8 +306,8 @@ internal class SearchViewModel {
     }
     
     private func reset() {
-        layout = .empty
         pageNumber = 1
+        hasNext = false
     }
     
     private func trimQuery(_ q: String) -> String {
