@@ -7,13 +7,14 @@
 
 import UIKit
 
+// TODO: FIX ACTIVITY INDICATOR DIDNT SHOW UP
+
 internal class LoadingCellView: UITableViewCell {
     internal static let identifier = "LoadingCellView"
     
     private let activityIndicator: UIActivityIndicatorView = {
         let indicator = UIActivityIndicatorView(style: .medium)
         indicator.translatesAutoresizingMaskIntoConstraints = false
-        indicator.startAnimating()
         return indicator
     }()
     
@@ -27,6 +28,7 @@ internal class LoadingCellView: UITableViewCell {
     }
     
     private func setupUI() {
+        backgroundColor = .systemGray
         contentView.addSubview(activityIndicator)
         
         NSLayoutConstraint.activate([

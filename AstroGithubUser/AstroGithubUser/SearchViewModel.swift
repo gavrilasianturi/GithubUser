@@ -8,7 +8,6 @@
 import Combine
 import Foundation
 
-// TODO: UPDATE LAYOUTTYPE (LOADING, EMPTY RESULT, ERROR FROM API)
 // TODO: MODULARRR
 
 internal enum Section {
@@ -168,7 +167,7 @@ internal class SearchViewModel {
                     removeLoadingItem()
                 case .failure(let error):
                     if layout == .empty {
-                        layout = .error(error)
+                        layout = .error(error.localizedDescription)
                     }
                     
                     pageNumber = 1
@@ -186,8 +185,9 @@ internal class SearchViewModel {
                     let totalUsers: [ItemType]
                     
                     if pageNumber > 1 {
+                        let currentUsers = generateCurrentUser()
                         let newUsers = generateUsersItem(from: users)
-                        totalUsers = (users + newUsers)
+                        totalUsers = (currentUsers + newUsers)
                     } else {
                         totalUsers = generateUsersItem(from: users)
                     }
@@ -253,7 +253,7 @@ internal class SearchViewModel {
             guard let self, case let .user(user) = item else { return item }
             var mutatedUser = user
             mutatedUser.isLiked = favoriteUsers.contains(where: { $0.id == user.id && $0.username == user.login })
-            return mutatedUser
+            return .user(mutatedUser)
         }
     }
     
@@ -263,10 +263,20 @@ internal class SearchViewModel {
         }
     }
     
+    private func generateCurrentUser() -> [ItemType] {
+        guard case let .content(items) = layout else { return [] }
+        
+        return items.compactMap { item -> ItemType? in
+            guard case let .user(user) = item else { return nil }
+            return .user(user)
+        }
+    }
+    
     private func removeLoadingItem() {
-        guard case let .content(items) = layout else { return }
+        guard case var .content(items) = layout else { return }
         
         items.removeAll(where: { $0 == .activityIndicator })
+        layout = .content(items)
     }
     
     private func reset() {
