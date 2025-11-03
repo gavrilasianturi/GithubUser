@@ -5,21 +5,21 @@
 //  Created by Gavrila on 31/10/25.
 //
 
-internal struct UserResponse: Decodable, Equatable {
-    internal let totalCount: Int
-    internal let items: [User]
+public struct UserResponse: Decodable, Equatable {
+    public let totalCount: Int
+    public let items: [User]
     
-    internal enum CodingKeys: String, CodingKey {
+    public enum CodingKeys: String, CodingKey {
         case totalCount = "total_count"
         case items
     }
     
-    internal init(totalCount: Int = 0, items: [User] = []) {
+    public init(totalCount: Int = 0, items: [User] = []) {
         self.totalCount = totalCount
         self.items = items
     }
     
-    internal init(from decoder: any Decoder) throws {
+    public init(from decoder: any Decoder) throws {
         let container = try decoder.container(keyedBy: CodingKeys.self)
         
         self.totalCount = try container.decodeIfPresent(Int.self, forKey: .totalCount) ?? 0
@@ -27,19 +27,19 @@ internal struct UserResponse: Decodable, Equatable {
     }
 }
 
-internal struct User: Decodable, Equatable, Identifiable, Hashable, Sendable {
-    internal let id: Int
-    internal let login: String
-    internal let avatarURL: String
-    internal var isLiked: Bool = false
+public struct User: Decodable, Equatable, Identifiable, Hashable, Sendable {
+    public let id: Int
+    public let login: String
+    public let avatarURL: String
+    public var isLiked: Bool = false
     
-    internal enum CodingKeys: String, CodingKey {
+    public enum CodingKeys: String, CodingKey {
         case id
         case login
         case avatarURL = "avatar_url"
     }
     
-    internal init(
+    public init(
         id: Int,
         login: String,
         avatarURL: String
@@ -49,7 +49,7 @@ internal struct User: Decodable, Equatable, Identifiable, Hashable, Sendable {
         self.avatarURL = avatarURL
     }
     
-    internal init(from decoder: any Decoder) throws {
+    public init(from decoder: any Decoder) throws {
         let container = try decoder.container(keyedBy: CodingKeys.self)
         
         self.id = try container.decodeIfPresent(Int.self, forKey: .id) ?? 0

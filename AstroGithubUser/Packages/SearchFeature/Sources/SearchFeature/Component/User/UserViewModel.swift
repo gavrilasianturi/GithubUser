@@ -7,11 +7,12 @@
 
 import Foundation
 
+@MainActor
 internal protocol UserCellDelegate: AnyObject {
     func didTapLikeButton(for user: User)
 }
 
-internal final class UserViewModel {
+internal final class UserViewModel: @unchecked Sendable {
     @Published private(set) var profileImageData: Data?
     @Published private(set) var name: String = ""
     @Published private(set) var isLiked: Bool = false
@@ -31,9 +32,12 @@ internal final class UserViewModel {
         
         cancelImageLoading()
         
-        Task {
+        imageLoadingTask = Task { @Sendable [weak self] in
             guard !Task.isCancelled else { return }
-            profileImageData = await loadImage(url: user.avatarURL)
+            let imageData = await self?.loadImage(url: user.avatarURL)
+            await MainActor.run {
+                self?.profileImageData = imageData
+            }
         }
     }
     

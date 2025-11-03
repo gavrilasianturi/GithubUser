@@ -6,6 +6,7 @@
 //
 
 import Foundation
+import SearchFeature
 
 @testable import AstroGithubUser
 

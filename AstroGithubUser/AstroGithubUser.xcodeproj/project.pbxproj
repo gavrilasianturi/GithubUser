@@ -8,6 +8,7 @@
 
 /* Begin PBXBuildFile section */
 		2BAF049D2EB854DA007C13B0 /* SharedServices in Frameworks */ = {isa = PBXBuildFile; productRef = 2BAF049C2EB854DA007C13B0 /* SharedServices */; };
+		2BF93CBE2EB864BA00F34DEB /* SearchFeature in Frameworks */ = {isa = PBXBuildFile; productRef = 2BF93CBD2EB864BA00F34DEB /* SearchFeature */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -70,6 +71,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				2BAF049D2EB854DA007C13B0 /* SharedServices in Frameworks */,
+				2BF93CBE2EB864BA00F34DEB /* SearchFeature in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -131,6 +133,7 @@
 			name = AstroGithubUser;
 			packageProductDependencies = (
 				2BAF049C2EB854DA007C13B0 /* SharedServices */,
+				2BF93CBD2EB864BA00F34DEB /* SearchFeature */,
 			);
 			productName = AstroGithubUser;
 			productReference = 2BAF04202EB460ED007C13B0 /* AstroGithubUser.app */;
@@ -216,6 +219,7 @@
 			minimizedProjectReferenceProxies = 1;
 			packageReferences = (
 				2BAF049B2EB854DA007C13B0 /* XCLocalSwiftPackageReference "Packages/SharedServices" */,
+				2BF93CBC2EB864BA00F34DEB /* XCLocalSwiftPackageReference "Packages/SearchFeature" */,
 			);
 			preferredProjectObjectVersion = 77;
 			productRefGroup = 2BAF04212EB460ED007C13B0 /* Products */;
@@ -578,12 +582,20 @@
 			isa = XCLocalSwiftPackageReference;
 			relativePath = Packages/SharedServices;
 		};
+		2BF93CBC2EB864BA00F34DEB /* XCLocalSwiftPackageReference "Packages/SearchFeature" */ = {
+			isa = XCLocalSwiftPackageReference;
+			relativePath = Packages/SearchFeature;
+		};
 /* End XCLocalSwiftPackageReference section */
 
 /* Begin XCSwiftPackageProductDependency section */
 		2BAF049C2EB854DA007C13B0 /* SharedServices */ = {
 			isa = XCSwiftPackageProductDependency;
 			productName = SharedServices;
+		};
+		2BF93CBD2EB864BA00F34DEB /* SearchFeature */ = {
+			isa = XCSwiftPackageProductDependency;
+			productName = SearchFeature;
 		};
 /* End XCSwiftPackageProductDependency section */
 	};

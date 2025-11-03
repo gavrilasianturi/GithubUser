@@ -5,6 +5,7 @@
 //  Created by Gavrila on 31/10/25.
 //
 
+import SearchFeature
 import UIKit
 
 class SceneDelegate: UIResponder, UIWindowSceneDelegate {

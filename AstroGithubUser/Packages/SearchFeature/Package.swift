@@ -4,7 +4,7 @@
 import PackageDescription
 
 let package = Package(
-    name: "SharedServices",
+    name: "SearchFeature",
     platforms: [
         .iOS(.v15),
         .macOS(.v10_15)
@@ -12,18 +12,21 @@ let package = Package(
     products: [
         // Products define the executables and libraries a package produces, making them visible to other packages.
         .library(
-            name: "SharedServices",
-            targets: ["SharedServices"]),
+            name: "SearchFeature",
+            targets: ["SearchFeature"]),
     ],
-    dependencies: [],
+    dependencies: [
+        .package(path: "../SharedServices")
+    ],
     targets: [
         // Targets are the basic building blocks of a package, defining a module or a test suite.
         // Targets can depend on other targets in this package and products from dependencies.
         .target(
-            name: "SharedServices"),
+            name: "SearchFeature",
+            dependencies: ["SharedServices"]),
         .testTarget(
-            name: "SharedServicesTests",
-            dependencies: ["SharedServices"]
+            name: "SearchFeatureTests",
+            dependencies: ["SearchFeature"]
         ),
     ]
 )

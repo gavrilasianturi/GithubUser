@@ -7,6 +7,8 @@
 
 import Combine
 import XCTest
+import SearchFeature
+
 @testable import AstroGithubUser
 
 internal final class SearchViewModelTests: XCTestCase {
@@ -39,7 +41,6 @@ internal final class SearchViewModelTests: XCTestCase {
         XCTAssertEqual(viewModel.sortType, .none)
         XCTAssertEqual(viewModel.query, "")
         XCTAssertEqual(viewModel.layout, .empty)
-        XCTAssertEqual(viewModel.errorMessage, "")
         XCTAssertEqual(viewModel.userPreference, nil)
         XCTAssertEqual(viewModel.favoriteUsers, [])
         XCTAssertEqual(viewModel.pageNumber, 1)

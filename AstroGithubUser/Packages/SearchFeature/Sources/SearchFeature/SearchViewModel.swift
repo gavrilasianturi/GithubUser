@@ -9,15 +9,15 @@ import Combine
 import Foundation
 import SharedServices
 
-internal enum Section {
+public enum Section: Sendable {
     case main
 }
 
-internal enum ItemType: Equatable, Hashable {
+public enum ItemType: Equatable, Hashable, Sendable {
     case user(User)
     case activityIndicator
     
-    internal var id: String {
+    public var id: String {
         switch self {
         case let .user(user): return "user_\(user.id)"
         case .activityIndicator: return "activityIndicator"
@@ -25,20 +25,20 @@ internal enum ItemType: Equatable, Hashable {
     }
 }
 
-internal class SearchViewModel {
-    internal enum SortType: String {
+public class SearchViewModel {
+    public enum SortType: String {
         case ascending
         case descending
         case none
     }
     
-    internal enum LayoutType: Equatable {
+    public enum LayoutType: Equatable {
         case loading
         case empty
         case content([ItemType])
         case error(String)
         
-        internal var description: String {
+        public var description: String {
             switch self {
             case .loading:
                 return "LOADINGGGGG"
@@ -51,7 +51,7 @@ internal class SearchViewModel {
             }
         }
         
-        internal var allowErrorState: Bool {
+        public var allowErrorState: Bool {
             switch self {
             case .loading, .empty, .error(_):
                 return true
@@ -61,19 +61,18 @@ internal class SearchViewModel {
         }
     }
     
-    @Published var sortType: SortType
-    @Published var query: String
-    @Published var layout: LayoutType
-    @Published private(set) var errorMessage: String
-    @Published private(set) var userPreference: UserPreferenceData?
+    @Published public var sortType: SortType
+    @Published public var query: String
+    @Published public var layout: LayoutType
+    @Published public private(set) var userPreference: UserPreferenceData?
     
-    internal let loadMoreSubject = PassthroughSubject<Void, Never>()
-    internal let updateSortSubject = PassthroughSubject<SortType, Never>()
+    public let loadMoreSubject = PassthroughSubject<Void, Never>()
+    public let updateSortSubject = PassthroughSubject<SortType, Never>()
     
-    private(set) var favoriteUsers = Set<FavoriteUserData>()
+    public private(set) var favoriteUsers = Set<FavoriteUserData>()
     
-    internal var pageNumber: Int = 1
-    internal var hasNext: Bool = false
+    public var pageNumber: Int = 1
+    public var hasNext: Bool = false
     
     private var cancellables: Set<AnyCancellable> = []
     
@@ -81,11 +80,10 @@ internal class SearchViewModel {
     private let globalStorage: GlobalStorage
     private let debounce: Int
     
-    internal init(
+    public init(
         sortType: SortType = .none,
         query: String = "",
         layout: LayoutType = .empty,
-        errorMessage: String = "",
         userPreference: UserPreferenceData? = nil,
         pageNumber: Int = 1,
         hasNext: Bool = false,
@@ -96,7 +94,6 @@ internal class SearchViewModel {
         self.sortType = sortType
         self.query = query
         self.layout = layout
-        self.errorMessage = errorMessage
         self.userPreference = userPreference
         self.networkManager = networkManager
         self.debounce = debounce
@@ -110,7 +107,7 @@ internal class SearchViewModel {
         setupSortedItems()
     }
     
-    internal func setFavorite(for user: User) {
+    public func setFavorite(for user: User) {
         guard
             case var .content(items) = layout,
             let index = items.firstIndex(where: { item in

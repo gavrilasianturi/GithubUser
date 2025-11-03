@@ -8,7 +8,7 @@
 import Combine
 import UIKit
 
-internal class SearchViewController: UIViewController {
+public class SearchViewController: UIViewController {
     
     // MARK: - UI Components
     private let searchBar = UISearchBar()
@@ -34,6 +34,14 @@ internal class SearchViewController: UIViewController {
     private let viewModel = SearchViewModel()
     private var cancellables: Set<AnyCancellable> = []
     private var dataSource: UITableViewDiffableDataSource<Section, ItemType>?
+    
+    public init() {
+        super.init(nibName: nil, bundle: nil)
+    }
+    
+    required internal init?(coder: NSCoder) {
+        fatalError("init(coder:) has not been implemented")
+    }
     
     public override func viewDidLoad() {
         super.viewDidLoad()
@@ -167,7 +175,7 @@ internal class SearchViewController: UIViewController {
                 cell.configure(user: user)
                 cell.delegate = self
                 return cell
-                            
+                
             case .activityIndicator:
                 let cell = tableView.dequeueReusableCell(withIdentifier: LoadingCellView.identifier, for: indexPath) as? LoadingCellView ?? LoadingCellView()
                 return cell
@@ -259,7 +267,7 @@ internal class SearchViewController: UIViewController {
 }
 
 extension SearchViewController: UITableViewDelegate {
-    internal func scrollViewDidScroll(_ scrollView: UIScrollView) {
+    public func scrollViewDidScroll(_ scrollView: UIScrollView) {
         let offsetY = scrollView.contentOffset.y
         let contentHeight = scrollView.contentSize.height
         let frameHeight = scrollView.frame.size.height
@@ -271,7 +279,7 @@ extension SearchViewController: UITableViewDelegate {
 }
 
 extension SearchViewController: UISearchBarDelegate {
-    internal func searchBar(_ searchBar: UISearchBar, textDidChange searchText: String) {
+    public func searchBar(_ searchBar: UISearchBar, textDidChange searchText: String) {
         viewModel.query = searchText
     }
 }

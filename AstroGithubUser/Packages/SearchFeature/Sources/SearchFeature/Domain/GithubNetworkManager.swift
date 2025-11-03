@@ -9,16 +9,16 @@ import Combine
 import Foundation
 import SharedServices
 
-internal protocol GithubNetworkManager {
+public protocol GithubNetworkManager {
     func getSearchResult(query: String, page: Int) -> AnyPublisher<UserResponse, NetworkError>
 }
 
-internal final class LiveGithubNetworkManager: GithubNetworkManager {
-    internal let networkService = NetworkService.shared
+public final class LiveGithubNetworkManager: GithubNetworkManager {
+    public let networkService = NetworkService.shared
     
-    internal init() {}
+    public init() {}
     
-    internal func getSearchResult(query: String, page: Int) -> AnyPublisher<UserResponse, NetworkError> {
+    public func getSearchResult(query: String, page: Int) -> AnyPublisher<UserResponse, NetworkError> {
         guard let url = URL(string: "https://api.github.com/search/users?q=\(query)&page=\(page)") else {
             return Fail(error: NetworkError.invalidURL).eraseToAnyPublisher()
         }
