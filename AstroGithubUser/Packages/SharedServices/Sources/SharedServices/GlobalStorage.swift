@@ -9,16 +9,25 @@ import Combine
 import CoreData
 import Foundation
 
-internal struct FavoriteUserData: Codable, Hashable {
-    internal let id: Int
-    internal let username: String
+public struct FavoriteUserData: Codable, Hashable {
+    public let id: Int
+    public let username: String
+    
+    public init(id: Int, username: String) {
+        self.id = id
+        self.username = username
+    }
 }
 
-internal struct UserPreferenceData: Codable, Hashable {
-    internal var sortType: String
+public struct UserPreferenceData: Codable, Hashable {
+    public var sortType: String
+    
+    public init(sortType: String) {
+        self.sortType = sortType
+    }
 }
 
-internal protocol GlobalStorage {
+public protocol GlobalStorage {
     func saveFavorite(id: Int, username: String) -> AnyPublisher<Void, NetworkError>
     func removeFavorite(id: Int, username: String) -> AnyPublisher<Void, NetworkError>
     func getAllFavorites() -> AnyPublisher<[FavoriteUserData], NetworkError>
@@ -26,11 +35,18 @@ internal protocol GlobalStorage {
     func getUserPreference() -> AnyPublisher<UserPreferenceData?, NetworkError>
 }
 
-internal class CoreDataGlobalStorage: GlobalStorage {
+public class CoreDataGlobalStorage: GlobalStorage {
     private let container: NSPersistentContainer
     
-    internal init() {
-        self.container = NSPersistentContainer(name: "GlobalStorage")
+    public init() {
+        let bundle = Bundle.module
+        
+        guard let modelURL = bundle.url(forResource: "GlobalStorage", withExtension: "momd"),
+              let model = NSManagedObjectModel(contentsOf: modelURL) else {
+            fatalError("Failed to load GlobalStorage.xcdatamodeld from SharedServices bundle")
+        }
+        
+        self.container = NSPersistentContainer(name: "GlobalStorage", managedObjectModel: model)
         
         container.loadPersistentStores { _, error in
             if let error = error {
@@ -39,7 +55,7 @@ internal class CoreDataGlobalStorage: GlobalStorage {
         }
     }
     
-    internal func saveFavorite(id: Int, username: String) -> AnyPublisher<Void, NetworkError> {
+    public func saveFavorite(id: Int, username: String) -> AnyPublisher<Void, NetworkError> {
         let context = self.container.viewContext
         
         let request: NSFetchRequest<FavoriteUser> = FavoriteUser.fetchRequest()
@@ -64,7 +80,7 @@ internal class CoreDataGlobalStorage: GlobalStorage {
         }
     }
     
-    internal func removeFavorite(id: Int, username: String) -> AnyPublisher<Void, NetworkError> {
+    public func removeFavorite(id: Int, username: String) -> AnyPublisher<Void, NetworkError> {
         let context = self.container.viewContext
         
         let request: NSFetchRequest<FavoriteUser> = FavoriteUser.fetchRequest()
@@ -87,7 +103,7 @@ internal class CoreDataGlobalStorage: GlobalStorage {
         }
     }
     
-    internal func getAllFavorites() -> AnyPublisher<[FavoriteUserData], NetworkError> {
+    public func getAllFavorites() -> AnyPublisher<[FavoriteUserData], NetworkError> {
         let context = container.viewContext
         let request: NSFetchRequest<FavoriteUser> = FavoriteUser.fetchRequest()
         
@@ -104,7 +120,7 @@ internal class CoreDataGlobalStorage: GlobalStorage {
         }
     }
     
-    internal func saveUserPreference(_ preference: UserPreferenceData) -> AnyPublisher<Void, NetworkError> {
+    public func saveUserPreference(_ preference: UserPreferenceData) -> AnyPublisher<Void, NetworkError> {
         let context = self.container.viewContext
         
         let request: NSFetchRequest<Preference> = Preference.fetchRequest()
@@ -128,7 +144,7 @@ internal class CoreDataGlobalStorage: GlobalStorage {
         }
     }
     
-    internal func getUserPreference() -> AnyPublisher<UserPreferenceData?, NetworkError> {
+    public func getUserPreference() -> AnyPublisher<UserPreferenceData?, NetworkError> {
         let context = self.container.viewContext
         
         let request: NSFetchRequest<Preference> = Preference.fetchRequest()

@@ -2,7 +2,7 @@
 //  SearchViewModelTests.swift
 //  AstroGithubUser
 //
-//  Created by ByteDance on 02/11/25.
+//  Created by Gavrila on 02/11/25.
 //
 
 import Combine

@@ -7,14 +7,14 @@
 
 import Combine
 import Foundation
+import SharedServices
 
 internal protocol GithubNetworkManager {
     func getSearchResult(query: String, page: Int) -> AnyPublisher<UserResponse, NetworkError>
 }
 
 internal final class LiveGithubNetworkManager: GithubNetworkManager {
-    
-    private let networkService = NetworkService()
+    internal let networkService = NetworkService.shared
     
     internal init() {}
     

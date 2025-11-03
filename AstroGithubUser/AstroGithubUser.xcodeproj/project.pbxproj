@@ -6,6 +6,10 @@
 	objectVersion = 77;
 	objects = {
 
+/* Begin PBXBuildFile section */
+		2BAF049D2EB854DA007C13B0 /* SharedServices in Frameworks */ = {isa = PBXBuildFile; productRef = 2BAF049C2EB854DA007C13B0 /* SharedServices */; };
+/* End PBXBuildFile section */
+
 /* Begin PBXContainerItemProxy section */
 		2BAF04372EB460EF007C13B0 /* PBXContainerItemProxy */ = {
 			isa = PBXContainerItemProxy;
@@ -65,6 +69,7 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				2BAF049D2EB854DA007C13B0 /* SharedServices in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -125,6 +130,7 @@
 			);
 			name = AstroGithubUser;
 			packageProductDependencies = (
+				2BAF049C2EB854DA007C13B0 /* SharedServices */,
 			);
 			productName = AstroGithubUser;
 			productReference = 2BAF04202EB460ED007C13B0 /* AstroGithubUser.app */;
@@ -208,6 +214,9 @@
 			);
 			mainGroup = 2BAF04172EB460ED007C13B0;
 			minimizedProjectReferenceProxies = 1;
+			packageReferences = (
+				2BAF049B2EB854DA007C13B0 /* XCLocalSwiftPackageReference "Packages/SharedServices" */,
+			);
 			preferredProjectObjectVersion = 77;
 			productRefGroup = 2BAF04212EB460ED007C13B0 /* Products */;
 			projectDirPath = "";
@@ -295,6 +304,7 @@
 				INFOPLIST_KEY_UILaunchStoryboardName = LaunchScreen;
 				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad = "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
 				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPhone = "UIInterfaceOrientationPortrait UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
+				IPHONEOS_DEPLOYMENT_TARGET = 15.6;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/Frameworks",
@@ -321,6 +331,7 @@
 				INFOPLIST_KEY_UILaunchStoryboardName = LaunchScreen;
 				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad = "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
 				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPhone = "UIInterfaceOrientationPortrait UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
+				IPHONEOS_DEPLOYMENT_TARGET = 15.6;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/Frameworks",
@@ -561,6 +572,20 @@
 			defaultConfigurationName = Release;
 		};
 /* End XCConfigurationList section */
+
+/* Begin XCLocalSwiftPackageReference section */
+		2BAF049B2EB854DA007C13B0 /* XCLocalSwiftPackageReference "Packages/SharedServices" */ = {
+			isa = XCLocalSwiftPackageReference;
+			relativePath = Packages/SharedServices;
+		};
+/* End XCLocalSwiftPackageReference section */
+
+/* Begin XCSwiftPackageProductDependency section */
+		2BAF049C2EB854DA007C13B0 /* SharedServices */ = {
+			isa = XCSwiftPackageProductDependency;
+			productName = SharedServices;
+		};
+/* End XCSwiftPackageProductDependency section */
 	};
 	rootObject = 2BAF04182EB460ED007C13B0 /* Project object */;
 }

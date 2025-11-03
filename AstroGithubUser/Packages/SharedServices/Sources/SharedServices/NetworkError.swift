@@ -7,13 +7,13 @@
 
 import Foundation
 
-internal enum NetworkError: LocalizedError {
+public enum NetworkError: LocalizedError {
     case decodeError
     case networkError
     case invalidURL
     case others(String)
     
-    internal var errorDescription: String? {
+    public var errorDescription: String? {
         switch self {
         case .decodeError:
             return "Failed to parse server response"

@@ -2,11 +2,12 @@
 //  MockGlobalStorage.swift
 //  AstroGithubUserTests
 //
-//  Created by ByteDance on 02/11/25.
+//  Created by Gavrila on 02/11/25.
 //
 
 import Combine
 import Foundation
+import SharedServices
 
 @testable import AstroGithubUser
 

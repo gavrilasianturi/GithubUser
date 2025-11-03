@@ -8,10 +8,10 @@
 import Combine
 import Foundation
 
-internal class NetworkService {
+public final class NetworkService: Sendable {
     public static let shared = NetworkService()
     
-    internal func fetch<T: Decodable>(_ request: URLRequest) -> AnyPublisher<T, NetworkError> {
+    public func fetch<T: Decodable>(_ request: URLRequest) -> AnyPublisher<T, NetworkError> {
         URLSession.shared.dataTaskPublisher(for: request)
             .tryMap { data, response in
                 print("status code", (response as? HTTPURLResponse)?.statusCode)
